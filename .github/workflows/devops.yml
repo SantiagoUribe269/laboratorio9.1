@@ -5,3 +5,54 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # STEP 1: Checkout
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # STEP 2: Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # STEP 3: Cache
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-${{ runner.os }}-
+
+      # STEP 4: Install dependencies
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # STEP 5: Run tests
+      - name: Run tests
+        run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+          pytest -q
+
+      # STEP 6: Create build tag
+      - name: Compute build tag
+        id: meta
+        run: |
+          TS=$(date +%Y%m%d-%H%M%S)
+          echo "tag=${TS}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # STEP 7: Save artifact
+      - name: Save artifact (sample log)
+        run: |
+          echo "Build tag: ${{ steps.meta.outputs.tag }}" > build-info.txt
+      - name: Upload build info artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-info
+          path: build-info.txt
