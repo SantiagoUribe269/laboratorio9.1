@@ -3,5 +3,6 @@ def great(name: str) -> str:
 
 
 
+
 if __name__ == "__main__":
     print(great("World"))
